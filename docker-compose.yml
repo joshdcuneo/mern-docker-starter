@@ -1,0 +1,54 @@
+version: "3"
+
+## TODO add auth to mongo
+## TODO move env to .env
+## TODO work out production architecture (add nginx proxy)
+## TODO work out testing?
+
+services:
+  ##########################
+  ### SETUP SERVER CONTAINER
+  ##########################
+  server:
+    build: ./server
+    expose:
+      - 4000
+    environment:
+      - MONGO_URI=mongodb://db:27017/db
+      - PORT=4000
+    ports:
+      - 4000:4000
+    volumes:
+      # Map client src to server src to hot reload
+      - ./server/src:/app/server/src
+    command: nodemon -L src/server.js
+    links:
+      - db
+    restart: always
+  ##########################
+  ### SETUP CLIENT CONTAINER
+  ##########################
+  client:
+    build: ./client
+    environment:
+      - REACT_APP_PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+    expose:
+      - 3000
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client/src:/app/client/src
+      - ./client/public:/app/client/public
+    links:
+      - server
+    command: npm run start
+    restart: always
+  ##########################
+  ### SETUP DB CONTAINER
+  ##########################
+  db:
+    image: mongo
+    ports:
+      - 27017:27017
+    restart: always

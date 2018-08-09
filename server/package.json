@@ -1,0 +1,38 @@
+{
+  "name": "board-server",
+  "version": "1.0.0",
+  "description": "An apollo-express server for the whiteboard app",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint --fix src/**",
+    "test": "jest",
+    "start": "node src/server.js",
+    "server": "nodemon src/server.js",
+    "client": "npm run start --prefix ../client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/joshdcuneo/board.git"
+  },
+  "keywords": [
+    "apollo",
+    "graphql",
+    "express",
+    "react"
+  ],
+  "author": "Josh Cuneo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/joshdcuneo/board/issues"
+  },
+  "homepage": "https://github.com/joshdcuneo/board#readme",
+  "dependencies": {
+    "concurrently": "^3.6.1",
+    "express": "^4.16.3",
+    "mongoose": "^5.2.7"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.3"
+  }
+}
