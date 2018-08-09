@@ -6,7 +6,8 @@ This repo provides an opinionated demo and instructions to setup a development a
 
 - Hot reloading on both client and server
 - Optional (recommended) auth settings on MongoDB
-  This is by no means the only correct way, just a simple and easy to work with methodology that provides modular services.
+
+This is by no means the only correct way, just a simple and easy to work with methodology that provides modular services.
 
 ## DEVELOPMENT
 
