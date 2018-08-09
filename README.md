@@ -57,7 +57,7 @@ Lets add axios to our client so we can easily make sure it can communicate with 
 cd client && yarn add axios
 ```
 
-Now we can make a few changes to `/client/src/App.js` to use axios to make a request to the server.
+Now we can add an axios request in `/client/src/App.js` to check the link with the server.
 
 ```javascript
 // client/src/App.js
@@ -154,11 +154,7 @@ Now let start on our server. Still working from the project root directory lets 
 mkdir server && cd server && npm install express mongoose
 ```
 
-Next need to setup a basic server to connect our client and database. In our current directory `/server` lets create a directory for our server source code and a server.js file.
-
-```
-mkdir server && cd server && touch server.js
-```
+Next we need to setup a basic server to connect our client and database. In our current directory `/server` lets create a server.js file.
 
 In server.js we can add the following code to handle requests from the client and serve data from the database.
 
