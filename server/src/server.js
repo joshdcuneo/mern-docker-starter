@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 // Assign environment variables
 const port = process.env.PORT || 4000;
 const mongoUri = process.env.MONGO_URI || "mongodb://localhost:27017/test";
+console.log(mongoUri)
 
 /**
  * Setup services

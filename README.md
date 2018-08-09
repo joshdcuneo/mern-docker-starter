@@ -275,7 +275,20 @@ For this project we will use MongoDB from the standard image so no setup is requ
 
 ## Docker Compose
 
-Its easy from here. Though I should flesh out the details more. Create `docker-compose.yml` in the project root:
+Its easy from here. Though I should flesh out the details more.
+
+First we need to create our environment variables. Create `.env` in the project root:
+
+```.env
+# .env
+MONGO_URI=mongodb://db:27017/db
+PORT=4000
+REACT_APP_PORT=3000
+CHOKIDAR_USEPOLLING=true
+MONGO_PORT=27017
+```
+
+Create `docker-compose.yml` in the project root:
 
 ```yaml
 version: "3"
@@ -339,9 +352,115 @@ services:
 
 ## PRODUCTION
 
+There are a few changes required to make this setup production ready. There is no particularly great order to do them in so we will just start and work our way through. The things are:
+
+- Move secrets out of committed files and into .env
+- Setup authentication for MongoDB
+- Configure Mongoose to authenticate with MongoDB
+
+### Secrets + Mongo
+
+Your secrets (passwords etc) should NEVER be in your files that are commited to a repo or otherwise available. A safer place for them is in a .env file. Docker will parse this file in during image builds. There are safer options available but this approach is adequate so we will keep it simple.
+First we need to create `.env` in our project root:
+
+```env
+# .env
+MONGO_URI=db:27017/db?authSource=admin
+PORT=4000
+REACT_APP_PORT=3000
+CHOKIDAR_USEPOLLING=true
+MONGO_PORT=27017
+MONGO_INITDB_ROOT_USERNAME=your-username-here
+MONGO_INITDB_ROOT_PASSWORD=your-secure-password-here
+```
+
+Then we will need to reference these in our `docker-compose.yml`. Copy your your existing `docker-compose.yml` and rename one to `dev-docker-compose.yml` or something that makes sense to you. Working in `docker-compose.yml` change the environment settings to reference your .env as follows:
+
+```bash
+version: "3"
+
+services:
+  ##########################
+  ### SETUP SERVER CONTAINER
+  ##########################
+  server:
+    build: ./server
+    environment:
+      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${MONGO_URI}
+      - PORT=${PORT}
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      # Map client src to server src to hot reload
+      - ./server/src:/app/server/src
+    command: nodemon -L src/server.js
+    links:
+      - db
+    restart: always
+  ##########################
+  ### SETUP CLIENT CONTAINER
+  ##########################
+  client:
+    build: ./client
+    environment:
+      - REACT_APP_PORT=${REACT_APP_PORT}
+      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
+
+    ports:
+      - ${REACT_APP_PORT}:${REACT_APP_PORT}
+    volumes:
+      - ./client/src:/app/client/src
+      - ./client/public:/app/client/public
+    links:
+      - server
+    command: npm run start
+    restart: always
+  ##########################
+  ### SETUP DB CONTAINER
+  ##########################
+  db:
+    image: mongo
+    ports:
+      - ${MONGO_PORT}:${MONGO_PORT}
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+```
+
+> !! Pay close attention the construction of the MONGO_URI variable. Don't miss a ":" or "@"
+
+As well as keeping our secrets safe .env allows easy configuration for different environments by simply providing a different .env file.
+
+That also just happens to include the setup for securing Mongo. The `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD` variables will create an admin user when the container is setup. If you have trouble creating this user you may need to remove the containers. Docker will only add the user on build if there is no existing data.
+
+There are script methods to add additional users that you can research if needed.
+
+### Mongoose
+
+Now that we have configured Mongo to require authentication Mongoose will need to be configured to provide it. Conveniently since we are already using an Environment variable to set the URI we were able to configure this in docker-compose.yml with this line:
+
+```
+MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${MONGO_URI}
+```
+
+and the section on the end of the env var tells mongo which database to look for the user in:
+
+```
+MONGO_URI=db:27017/db?authSource=admin
+```
+
 ## Other resources
 
 - [A complicated yet optimised create-react-app setup with Docker (untested)](https://www.peterbe.com/plog/how-to-create-react-app-with-docker)
 - [Production build method with create-react-app and nginx (used in production section)](https://medium.com/@shakyShane/lets-talk-about-docker-artifacts-27454560384f)
 - [Detailed full stack production article (untested but looks good)](https://blog.bam.tech/developper-news/dockerize-your-app-and-keep-hot-reloading)
 - [Very helpful is slightly hard to react article on a node-react-docker setup](https://medium.com/@xiaolishen/develop-in-docker-a-node-backend-and-a-react-front-end-talking-to-each-other-5c522156f634)
+
+```
+
+```
+
+```
+
+```

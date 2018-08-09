@@ -1,5 +1,6 @@
 version: "3"
 
+## TODO add auth to mongo
 ## TODO work out production architecture (add nginx proxy)
 ## TODO work out testing?
 
@@ -10,7 +11,7 @@ services:
   server:
     build: ./server
     environment:
-      - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${MONGO_URI}
+      - MONGO_URI=${MONGO_URI}
       - PORT=${PORT}
     ports:
       - ${PORT}:${PORT}
@@ -47,6 +48,3 @@ services:
     ports:
       - ${MONGO_PORT}:${MONGO_PORT}
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
