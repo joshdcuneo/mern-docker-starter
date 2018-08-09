@@ -12,12 +12,13 @@ services:
     environment:
       - MONGO_URI=mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@${MONGO_URI}
       - PORT=${PORT}
+      - VIRTUAL_HOST=${SERVER_VIRTUAL_HOST}
     ports:
       - ${PORT}:${PORT}
     volumes:
       # Map client src to server src to hot reload
       - ./server/src:/app/server/src
-    command: nodemon -L src/server.js
+    command: node src/server.js
     links:
       - db
     restart: always
@@ -26,18 +27,10 @@ services:
   ##########################
   client:
     build: ./client
-    environment:
-      - REACT_APP_PORT=${REACT_APP_PORT}
-      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
-
     ports:
-      - ${REACT_APP_PORT}:${REACT_APP_PORT}
-    volumes:
-      - ./client/src:/app/client/src
-      - ./client/public:/app/client/public
+      - 80:80
     links:
       - server
-    command: npm run start
     restart: always
   ##########################
   ### SETUP DB CONTAINER
@@ -50,3 +43,13 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      # Map physical volume to virtual for data persistence
+      # On server could be /data/db
+      # For this case we will create a Docker volume and use it instead
+      # You need to run docker volume create yourproject-dbdata
+      - board-dbdata:/data/db
+# Add this to include data volume for mongo
+# Confirm this is working later
+volumes:
+  ? board-dbdata

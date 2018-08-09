@@ -13,6 +13,7 @@ services:
     environment:
       - MONGO_URI=${MONGO_URI}
       - PORT=${PORT}
+      - NODE_ENV=development
     ports:
       - ${PORT}:${PORT}
     volumes:

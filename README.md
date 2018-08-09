@@ -273,6 +273,8 @@ Great, all ready to roll. On to the database.
 
 For this project we will use MongoDB from the standard image so no setup is required. Be aware that this standard configuration is insecure and not suitable for deployment to production. Please read the production section to see details on how to modify for production use.
 
+This development database will not persist data when the container is closed because we have not mounted a physical drive. We will address this in production.
+
 ## Docker Compose
 
 Its easy from here. Though I should flesh out the details more.
@@ -357,18 +359,19 @@ There are a few changes required to make this setup production ready. There is n
 - Move secrets out of committed files and into .env
 - Setup authentication for MongoDB
 - Configure Mongoose to authenticate with MongoDB
+- Consider switching to a lighter linux image (alpine) to reduce container size dramatically.
+- Setup nginx proxy
+- Setup production build process for React
 
 ### Secrets + Mongo
 
 Your secrets (passwords etc) should NEVER be in your files that are commited to a repo or otherwise available. A safer place for them is in a .env file. Docker will parse this file in during image builds. There are safer options available but this approach is adequate so we will keep it simple.
-First we need to create `.env` in our project root:
+First we need to create `.env` in our project root, we can tidy it up a bit as React can only use environment variables like this during development (might look at env var filtering with nginx later):
 
 ```env
 # .env
 MONGO_URI=db:27017/db?authSource=admin
 PORT=4000
-REACT_APP_PORT=3000
-CHOKIDAR_USEPOLLING=true
 MONGO_PORT=27017
 MONGO_INITDB_ROOT_USERNAME=your-username-here
 MONGO_INITDB_ROOT_PASSWORD=your-secure-password-here
@@ -402,18 +405,10 @@ services:
   ##########################
   client:
     build: ./client
-    environment:
-      - REACT_APP_PORT=${REACT_APP_PORT}
-      - CHOKIDAR_USEPOLLING=${CHOKIDAR_USEPOLLING}
-
     ports:
-      - ${REACT_APP_PORT}:${REACT_APP_PORT}
-    volumes:
-      - ./client/src:/app/client/src
-      - ./client/public:/app/client/public
+      - 80:80
     links:
       - server
-    command: npm run start
     restart: always
   ##########################
   ### SETUP DB CONTAINER
@@ -450,6 +445,71 @@ and the section on the end of the env var tells mongo which database to look for
 MONGO_URI=db:27017/db?authSource=admin
 ```
 
+### NGINX Proxy
+
+During development create-react-app has been running a server for us. Returning the static files and sending any requests for the server to localhost:4000. This tool is for development only so we will have to set up our own NGINX server to handle this.
+
+We can do this by making a few modifications to our client container. First lets create our nginx configuration at `client/nginx.conf`:
+
+```conf
+events {
+        worker_connections 768;
+}
+
+http {
+    server {
+        listen      80 default_server;
+
+        root /usr/share/nginx/html;
+
+        index index.html index.htm;
+
+        location / {
+            try_files $uri /index.html;
+        }
+
+        location /welcome {
+            proxy_pass http://server:4000;
+        }
+    }
+}
+```
+
+The nginx server will serve our built React files for requests to the root, any requests to /welcome (you can change this to whatever you would like to make your server requests on) will be proxied to the node server container.
+
+For more info on nginx configuration [read the docs!](https://docs.nginx.com/nginx/admin-guide/web-server/web-server/)
+
+### React in Production
+
+The last major change is to set up the React build process to produce our static files. This all happens in `client/Dockerfile`:
+
+```
+FROM node:boron as builder
+
+RUN mkdir -p /usr/src/app
+
+WORKDIR /usr/src/app
+
+COPY package.json /usr/src/app
+
+RUN npm install
+
+COPY . /usr/src/app
+
+RUN npm run build
+
+FROM nginx
+
+RUN rm /etc/nginx/conf.d/default.conf
+
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /usr/src/app/build /usr/share/nginx/html
+
+EXPOSE 80
+
+RUN chown nginx.nginx /usr/share/nginx/html/ -R
+```
+
 ## Other resources
 
 - [A complicated yet optimised create-react-app setup with Docker (untested)](https://www.peterbe.com/plog/how-to-create-react-app-with-docker)
@@ -457,10 +517,9 @@ MONGO_URI=db:27017/db?authSource=admin
 - [Detailed full stack production article (untested but looks good)](https://blog.bam.tech/developper-news/dockerize-your-app-and-keep-hot-reloading)
 - [Very helpful is slightly hard to react article on a node-react-docker setup](https://medium.com/@xiaolishen/develop-in-docker-a-node-backend-and-a-react-front-end-talking-to-each-other-5c522156f634)
 
-```
+# TODO
 
-```
-
-```
-
-```
+- Review Dockerfiles for speed
+- Review nginx config
+- Review node_modules handling
+- Review mongo data security
