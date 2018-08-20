@@ -673,6 +673,8 @@ docker-compose up
 
 Run `docker-machine ip <your-docker-machine-name>` to get the ip of your remote machine and hit it in the browser to see your site live!
 
+## TODO add https://www.humankode.com/ssl/how-to-set-up-free-ssl-certificates-from-lets-encrypt-using-docker-and-nginx
+
 ## Other resources
 
 - [A complicated yet optimised create-react-app setup with Docker (untested)](https://www.peterbe.com/plog/how-to-create-react-app-with-docker)
